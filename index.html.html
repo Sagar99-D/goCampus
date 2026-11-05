@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campus Shuttle Live</title>
+  <meta name="theme-color" content="#10212B">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1 id="campusName">Campus Shuttle</h1>
+    <div class="status" id="status" role="status" aria-live="polite">
+      <span class="dot"></span><span id="statusText">Connecting</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="board" aria-label="Shuttle arrivals">
+      <div class="pick">
+        <label for="stopSelect">I'm waiting at</label>
+        <select id="stopSelect"></select>
+        <button id="nearBtn" type="button">Find my nearest stop</button>
+      </div>
+
+      <h2 id="arrivalsTitle">Next shuttles</h2>
+      <ol id="arrivals" class="arrivals" aria-live="polite"></ol>
+
+      <h2>All shuttles</h2>
+      <ul id="fleet" class="fleet"></ul>
+
+      <p class="legend">
+        Seat squares: filled = taken, outlined = free. Seat counts come from infrared
+        sensors at each bus door.
+      </p>
+    </section>
+
+    <section class="mapwrap" aria-label="Live map">
+      <svg id="map" viewBox="0 0 1000 640" role="img" aria-label="Live map of campus shuttles and stops"></svg>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

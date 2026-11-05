@@ -1,0 +1,9 @@
+{
+  "name": "campus-shuttle-tracker",
+  "version": "1.0.0",
+  "description": "Real-time campus shuttle tracker with live GPS, ETA and IR-sensor seat availability",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=16" },
+  "license": "MIT"
+}

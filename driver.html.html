@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Driver console - Campus Shuttle</title>
+  <style>
+    :root { --bg:#E8EDF0; --panel:#fff; --ink:#10212B; --muted:#586973; --line:#CBD5DB; --ok:#0E8A5F; --bad:#B3261E; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#0C161C; --panel:#15232B; --ink:#E7EEF2; --muted:#9AABB5; --line:#2A3B45; --ok:#3CC48C; --bad:#FF6B61; } }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:16px; background:var(--bg); color:var(--ink); font-family:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif; }
+    main { max-width:520px; margin:0 auto; }
+    h1 { font-size:1.3rem; margin:4px 0 16px; }
+    section { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:16px; margin-bottom:14px; }
+    h2 { font-size:1rem; margin:0 0 10px; }
+    label { display:block; font-size:.9rem; color:var(--muted); margin:10px 0 4px; }
+    select, input, button { width:100%; font:inherit; font-size:1.05rem; padding:12px; border-radius:6px; border:2px solid var(--ink); background:var(--panel); color:var(--ink); }
+    button { cursor:pointer; font-weight:700; background:var(--ink); color:var(--panel); margin-top:12px; }
+    button.alt { background:var(--panel); color:var(--ink); }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    #info { font-size:.95rem; color:var(--muted); margin-top:12px; line-height:1.5; min-height:3em; }
+    #info.ok { color:var(--ok); } #info.bad { color:var(--bad); }
+    .big { font-size:2.4rem; font-weight:700; text-align:center; margin:4px 0; }
+    :focus-visible { outline:3px solid #0B5FA5; outline-offset:2px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Driver console</h1>
+
+  <section>
+    <h2>1. Share this bus's location</h2>
+    <label for="bus">Bus</label>
+    <select id="bus"></select>
+    <label for="key">Access key (leave empty if none is set)</label>
+    <input id="key" type="password" autocomplete="off">
+    <button id="toggle" type="button">Start sharing location</button>
+    <div id="info" role="status" aria-live="polite">Keep this page open and the screen on while driving. Location works on HTTPS or localhost only.</div>
+  </section>
+
+  <section>
+    <h2>2. Seat count backup (if the door sensor fails)</h2>
+    <div class="big" id="occ">-</div>
+    <div class="row">
+      <button class="alt" id="minus" type="button">1 got off</button>
+      <button class="alt" id="plus" type="button">1 got on</button>
+    </div>
+    <label for="count">Set exact passenger count</label>
+    <div class="row">
+      <input id="count" type="number" min="0" inputmode="numeric">
+      <button id="setCount" type="button" style="margin-top:0">Set count</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const cfg = await (await fetch('/api/config')).json();
+  const busSel = $('bus');
+  busSel.innerHTML = cfg.buses.map((b) => `<option value="${b.id}">${b.name}</option>`).join('');
+  try { $('key').value = localStorage.getItem('devkey') || ''; const sb = localStorage.getItem('drvbus'); if (sb) busSel.value = sb; } catch (e) {}
+
+  const info = (msg, cls) => { const i = $('info'); i.textContent = msg; i.className = cls || ''; };
+  async function post(endpoint, body) {
+    const headers = { 'Content-Type': 'application/json' };
+    if ($('key').value) headers['x-api-key'] = $('key').value;
+    const r = await fetch(`/api/buses/${busSel.value}/${endpoint}`, { method: 'POST', headers, body: JSON.stringify(body) });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'Request failed (' + r.status + ')');
+    return data;
+  }
+
+  let watchId = null, lastSent = 0, wake = null;
+  $('toggle').addEventListener('click', async () => {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId); watchId = null;
+      if (wake) { wake.release().catch(() => {}); wake = null; }
+      $('toggle').textContent = 'Start sharing location'; info('Stopped sharing.'); return;
+    }
+    if (!navigator.geolocation) return info('This browser has no location support.', 'bad');
+    try { localStorage.setItem('devkey', $('key').value); localStorage.setItem('drvbus', busSel.value); } catch (e) {}
+    try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {}
+    $('toggle').textContent = 'Stop sharing location';
+    info('Waiting for a GPS fix...');
+    watchId = navigator.geolocation.watchPosition(async (pos) => {
+      const now = Date.now();
+      if (now - lastSent < 2000) return;
+      lastSent = now;
+      const c = pos.coords;
+      try {
+        await post('location', { lat: c.latitude, lng: c.longitude, speed: c.speed == null ? undefined : c.speed });
+        info(`Sharing live. ${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)} (accuracy ${Math.round(c.accuracy)} m)`, 'ok');
+      } catch (e) { info('Could not send location: ' + e.message, 'bad'); }
+    }, (err) => info('Location error: ' + err.message + '. Allow location access and try again.', 'bad'),
+    { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+  });
+
+  async function door(event) {
+    try { const d = await post('door', { event }); $('occ').textContent = d.occupancy + ' on board'; }
+    catch (e) { info(e.message, 'bad'); }
+  }
+  $('plus').addEventListener('click', () => door('in'));
+  $('minus').addEventListener('click', () => door('out'));
+  $('setCount').addEventListener('click', async () => {
+    try { const d = await post('occupancy', { count: $('count').value }); $('occ').textContent = d.occupancy + ' on board'; }
+    catch (e) { info(e.message, 'bad'); }
+  });
+  async function refresh() {
+    const s = await (await fetch('/api/state')).json();
+    const b = s.buses.find((x) => x.id === busSel.value);
+    if (b) $('occ').textContent = b.occupancy + ' on board';
+  }
+  busSel.addEventListener('change', refresh);
+  setInterval(refresh, 3000); refresh();
+})();
+</script>
+</body>
+</html>

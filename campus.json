@@ -1,0 +1,35 @@
+{
+  "name": "Campus Shuttle Live",
+  "stops": [
+    { "id": "gate",    "name": "Main Gate",       "lat": 26.4400, "lng": 92.0300 },
+    { "id": "library", "name": "Library",         "lat": 26.4412, "lng": 92.0318 },
+    { "id": "science", "name": "Science Block",   "lat": 26.4430, "lng": 92.0330 },
+    { "id": "hostelA", "name": "Hostel A",        "lat": 26.4448, "lng": 92.0312 },
+    { "id": "sports",  "name": "Sports Complex",  "lat": 26.4440, "lng": 92.0285 },
+    { "id": "admin",   "name": "Admin Block",     "lat": 26.4392, "lng": 92.0320 },
+    { "id": "canteen", "name": "Canteen",         "lat": 26.4396, "lng": 92.0346 },
+    { "id": "hostelB", "name": "Hostel B",        "lat": 26.4414, "lng": 92.0362 },
+    { "id": "medical", "name": "Medical Centre",  "lat": 26.4420, "lng": 92.0340 }
+  ],
+  "routes": [
+    {
+      "id": "red", "name": "Red Loop", "color": "#D6392F",
+      "path": [
+        "gate", [26.4405, 92.0310], "library", [26.4422, 92.0326], "science",
+        [26.4442, 92.0328], "hostelA", [26.4446, 92.0298], "sports", [26.4420, 92.0287]
+      ]
+    },
+    {
+      "id": "blue", "name": "Blue Loop", "color": "#1C6FD1",
+      "path": [
+        "gate", "admin", [26.4394, 92.0334], "canteen", [26.4406, 92.0356], "hostelB",
+        [26.4418, 92.0352], "medical", [26.4416, 92.0328], "library", [26.4406, 92.0308]
+      ]
+    }
+  ],
+  "buses": [
+    { "id": "bus1", "name": "Bus 1", "routeId": "red",  "capacity": 30, "startOffset": 0.00 },
+    { "id": "bus2", "name": "Bus 2", "routeId": "red",  "capacity": 30, "startOffset": 0.50 },
+    { "id": "bus3", "name": "Bus 3", "routeId": "blue", "capacity": 40, "startOffset": 0.25 }
+  ]
+}
